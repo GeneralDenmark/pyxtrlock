@@ -349,7 +349,7 @@ def alloc_color_sync(conn, colormap, r, g, b):
     error_p = POINTER(GenericError)()
     res = alloc_color_reply(conn, cookie, byref(error_p))
     if error_p:
-        raise XCBERror(error_p.contents)
+        raise XCBError(error_p.contents)
 
     ret = (res.contents.red, res.contents.green, res.contents.blue)
     free(res)
