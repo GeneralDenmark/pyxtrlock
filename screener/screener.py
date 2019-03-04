@@ -2,81 +2,77 @@ import subprocess
 import pyglet
 import pyscreenshot
 import os
+import threading
 from PIL import ImageFilter
 from time import sleep
-
-DIR = os.path.abspath(os.path.dirname(__file__))
-
-locked_bg = os.path.join(DIR, 'output.png')
-platform = pyglet.window.get_platform()
-display = pyglet.canvas.get_display()
-screens = display.get_screens()
-
-width = 0
-im = pyscreenshot.grab((
-    width, 0, width + screens[0].width, 1200
-))
-width += screens[0].width
-im = im.filter(ImageFilter.GaussianBlur(radius=5))
-im.save(os.path.join(DIR, '0') + '.png')
-width += screens[0].width
-im = pyscreenshot.grab((
-    width, 0, width + screens[2].width, 1200
-))
-width += screens[2].width
-im = im.filter(ImageFilter.GaussianBlur(radius=5))
-im.save(os.path.join(DIR, '1') + '.png')
-im = pyscreenshot.grab((
-    width, 0, width + screens[1].width, 1200
-))
-im = im.filter(ImageFilter.GaussianBlur(radius=5))
-im.save(os.path.join(DIR, '2') + '.png')
+from pprint import pprint
 
 
-width = 0
-window1 = pyglet.window.Window(screens[0].width, screens[0].height)
-window1.set_location(width, 0)
-width += screens[0].width
-window2 = pyglet.window.Window(screens[2].width, screens[2].height)
-window2.set_location(width, 0)
-width += screens[2].width
-window3 = pyglet.window.Window(screens[1].width, screens[1].height)
-window3.set_location(width, 0)
-img1 = pyglet.resource.image('0.png')
-img2 = pyglet.resource.image('1.png')
-img3 = pyglet.resource.image('2.png')
+class Window(pyglet.window.Window):
+    def __init__(self, _screen, img_name):
+        super(Window, self).__init__(_screen.width, _screen.height)
+        self.__screen = _screen
+        self.img_name = img_name
+        self.background = pyglet.resource.image(img_name)
+
+        sprites= [
+            pyglet.sprite.Sprite()
+        ]
+        self.batches = {}
+
+        self.alive = 1
+        self.render()
+
+    def on_draw(self):
+        self.render()
+
+    def on_close(self):
+
+        self.alive = 0
+
+    def render(self):
+        self.set_location(self.__screen.x, 0)
+        self.clear()
+        self.background.anchor_x = self.background.width
+        self.background.anchor_y = self.background.height
+        self.background.blit(self.width ,  self.height)
+        for batch_name, batch in self.batches.items():
+            batch.draw()
+        self.flip()
+
+windows = []
 
 
-@window1.event
-def on_draw():
-    window1.clear()
-    print(window1.height, 'x', window1.width)
+def create_screen():
+    resources = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), 'resources')
+    pyglet.resource.path = [resources]
+    pyglet.resource.reindex()
 
-    print(img1.width, ' x ', img1.height)
-    img1.anchor_x = img1.width // 2
-    img1.anchor_y = img1.height // 2
-    img1.blit(window1.width // 2, (window1.height - 120) // 2)
+    display = pyglet.canvas.get_display()
+    screens = display.get_screens()
+    count = 0
+    for screen in sorted(screens, key=lambda e: e.x):
+        im = pyscreenshot.grab((
+            screen.x, 0, screen.x + screen.width, screen.height
+        ))
+        im = im.filter(ImageFilter.GaussianBlur(radius=5))
+        im.save(os.path.join(resources, str(count) + '.png'))
+        count += 1
 
+    count = 0
+    for screen in sorted(screens, key=lambda e: e.x):
+        window = Window(screen, str(count) + '.png')
+        windows.append(window)
+        count += 1
 
-@window2.event
-def on_draw():
-    print(window2.height, 'x', window2.width)
-
-    window2.clear()
-    print (img2.width, ' x ', img2.height)
-    img2.anchor_x = img2.width // 2
-    img2.anchor_y = img2.height // 2
-    img2.blit(window2.width // 2, window2.height // 2)
-
-
-@window3.event
-def on_draw():
-    print(window3.height, 'x', window3.width)
-    window3.clear()
-    print (img3.width, ' x ', img3.height)
-    img3.anchor_x = img3.width // 2
-    img3.anchor_y = img3.height // 2
-    img3.blit(window3.width // 2, window3.height // 2)
+    threading.Thread(target=run).start()
 
 
-pyglet.app.run()
+def run():
+    pyglet.app.run()
+
+
+def kill_screen():
+    pyglet.app.exit()
+
