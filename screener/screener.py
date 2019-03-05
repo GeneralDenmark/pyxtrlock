@@ -1,11 +1,8 @@
-import subprocess
 import pyglet
 import pyscreenshot
 import os
 import threading
 from PIL import ImageFilter
-from time import sleep
-from pprint import pprint
 
 
 class Window(pyglet.window.Window):
@@ -15,9 +12,9 @@ class Window(pyglet.window.Window):
         self.img_name = img_name
         self.background = pyglet.resource.image(img_name)
 
-        sprites= [
-            pyglet.sprite.Sprite()
-        ]
+        #sprites= [
+        #    pyglet.sprite.Sprite()
+        #]
         self.batches = {}
 
         self.alive = 1
@@ -25,10 +22,6 @@ class Window(pyglet.window.Window):
 
     def on_draw(self):
         self.render()
-
-    def on_close(self):
-
-        self.alive = 0
 
     def render(self):
         self.set_location(self.__screen.x, 0)
@@ -40,8 +33,6 @@ class Window(pyglet.window.Window):
             batch.draw()
         self.flip()
 
-windows = []
-
 
 def create_screen():
     resources = os.path.join(
@@ -52,6 +43,7 @@ def create_screen():
     display = pyglet.canvas.get_display()
     screens = display.get_screens()
     count = 0
+    windows = []
     for screen in sorted(screens, key=lambda e: e.x):
         im = pyscreenshot.grab((
             screen.x, 0, screen.x + screen.width, screen.height
@@ -76,3 +68,6 @@ def run():
 def kill_screen():
     pyglet.app.exit()
 
+
+if __name__ == '__main__':
+    create_screen()
